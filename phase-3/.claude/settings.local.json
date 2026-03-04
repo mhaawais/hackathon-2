@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(# Check the Next.js server output for errors # First let''s see if there are any running node processes tasklist //FI \"\"IMAGENAME eq node.exe\"\")",
+      "Bash(# Try sign-up first \\(maybe user already exists from before\\) curl -s -X POST http://localhost:3000/api/auth/sign-in/email \\\\ -H \"\"Content-Type: application/json\"\" \\\\ -d ''{\"\"email\"\":\"\"debugtest@test.com\"\",\"\"password\"\":\"\"TestPassword123!\"\"}'')",
+      "Bash(node -e:*)",
+      "Bash(bash .specify/scripts/bash/create-new-feature.sh --json --number 2 --short-name \"persistence-domain\" \"Phase 2 - Persistence and Domain Layer: Implement persistent multi-user task storage using Neon Postgres and SQLModel with strict user isolation and production-ready structure.\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
