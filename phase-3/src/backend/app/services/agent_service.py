@@ -199,14 +199,14 @@ def _run_gemini_agent(
                 ),
             )
         except ClientError as e:
-            if e.status_code == 429:
+            if e.code == 429:
                 return (
                     "I'm temporarily unavailable due to API rate limits. "
                     "Please wait a moment and try again.",
                     tool_calls_record,
                 )
             return (
-                f"The AI service returned an error: {e.status_code}. Please try again.",
+                f"The AI service returned an error: {e.code}. Please try again.",
                 tool_calls_record,
             )
 
