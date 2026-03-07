@@ -11,6 +11,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   tool_calls?: ToolCallRecord[];
+  timestamp?: string; // ISO string
 }
 
 export interface ChatApiResponse {

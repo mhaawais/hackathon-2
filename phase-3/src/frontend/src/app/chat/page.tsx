@@ -86,6 +86,7 @@ function ChatInner() {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
+      timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -102,6 +103,7 @@ function ChatInner() {
         role: "assistant",
         content: data.response,
         tool_calls: data.tool_calls.length > 0 ? data.tool_calls : undefined,
+        timestamp: new Date().toISOString(),
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -198,7 +200,7 @@ function ChatInner() {
           )}
 
           {/* Messages */}
-          <ChatWindow messages={messages} loading={loading} />
+          <ChatWindow messages={messages} loading={loading} onSuggestedPrompt={sendMessage} />
 
           {/* Input */}
           <ChatInput onSubmit={sendMessage} disabled={loading} />
