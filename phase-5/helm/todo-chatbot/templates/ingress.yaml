@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "todo-chatbot.fullname" . }}-ingress
+  labels:
+    {{- include "todo-chatbot.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          # Route /api/* to backend (FastAPI is mounted at /api so no rewrite needed)
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "todo-chatbot.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          # Route everything else to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "todo-chatbot.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

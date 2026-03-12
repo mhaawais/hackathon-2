@@ -1,0 +1,57 @@
+# Default values for todo-chatbot Helm chart.
+# Override secrets with: helm install todo-chatbot ./helm/todo-chatbot -f values-secrets.yaml
+
+# ── Backend ──────────────────────────────────────────────────────────────────
+backend:
+  image:
+    repository: todo-backend
+    tag: latest
+    # Never pull — image is loaded into Minikube locally
+    pullPolicy: Never
+  replicas: 1
+  port: 7860
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
+frontend:
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: Never
+  replicas: 1
+  port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  host: todo.local
+
+# ── ConfigMap (non-secret env vars) ──────────────────────────────────────────
+config:
+  geminiModel: gemini-1.5-flash
+  # Backend uses internal K8s DNS to fetch JWKS from frontend (pod-to-pod)
+  frontendUrl: http://todo-chatbot-frontend:3000
+  # Frontend uses external hostname for Better Auth base URL
+  betterAuthUrl: http://todo.local
+
+# ── Secrets (MUST be overridden — never commit real values here) ─────────────
+secrets:
+  # Base64-encoded values. Use: echo -n "value" | base64
+  # Or pass via: helm install ... --set secrets.databaseUrl=$(echo -n "$DATABASE_URL" | base64)
+  databaseUrl: ""
+  betterAuthSecret: ""
+  geminiApiKey: ""
