@@ -11,6 +11,8 @@ class TodoCreate(BaseModel):
     priority: Literal["high", "medium", "low"] = "medium"
     tags: List[str] = []
     due_date: Optional[datetime] = None
+    is_recurring: bool = False
+    recurrence_frequency: Optional[Literal["daily", "weekly", "monthly"]] = None
 
     @field_validator("title")
     @classmethod
@@ -27,6 +29,8 @@ class TodoUpdate(BaseModel):
     tags: Optional[List[str]] = None
     due_date: Optional[datetime] = None
     completed: Optional[bool] = None
+    is_recurring: Optional[bool] = None
+    recurrence_frequency: Optional[Literal["daily", "weekly", "monthly"]] = None
 
 
 class ToolCallRecord(BaseModel):
@@ -61,6 +65,9 @@ class TodoResponse(BaseModel):
     tags: List[str]
     due_date: Optional[datetime]
     status: str
+    is_recurring: bool
+    recurrence_frequency: Optional[str]
+    reminder_sent: bool
     user_id: str
     created_at: datetime
     updated_at: datetime

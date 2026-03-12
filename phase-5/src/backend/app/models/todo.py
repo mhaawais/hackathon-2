@@ -16,6 +16,10 @@ class Todo(SQLModel, table=True):
     tags: list = Field(default=[], sa_column=Column(JSON, nullable=False, server_default="[]"))
     due_date: Optional[datetime] = Field(default=None)
     status: str = Field(default="pending")
+    # Recurring task fields (Spec-010)
+    is_recurring: bool = Field(default=False, nullable=False)
+    recurrence_frequency: Optional[str] = Field(default=None)  # daily/weekly/monthly
+    reminder_sent: bool = Field(default=False, nullable=False)
     user_id: str = Field(nullable=False, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

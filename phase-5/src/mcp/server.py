@@ -65,6 +65,15 @@ TOOLS: list[Tool] = [
                     "type": "string",
                     "description": "ISO 8601 due date/time (e.g. '2026-03-15T10:00:00Z'). Optional.",
                 },
+                "is_recurring": {
+                    "type": "boolean",
+                    "description": "True if task repeats. Use for 'weekly standup', 'daily review' etc.",
+                },
+                "recurrence_frequency": {
+                    "type": "string",
+                    "enum": ["daily", "weekly", "monthly"],
+                    "description": "How often the task recurs. Required when is_recurring=true.",
+                },
             },
             "required": ["user_id", "title"],
         },
@@ -177,6 +186,15 @@ TOOLS: list[Tool] = [
                 "completed": {
                     "type": "boolean",
                     "description": "Set completion status directly (optional)",
+                },
+                "is_recurring": {
+                    "type": "boolean",
+                    "description": "Toggle recurring on/off (optional)",
+                },
+                "recurrence_frequency": {
+                    "type": "string",
+                    "enum": ["daily", "weekly", "monthly"],
+                    "description": "Change recurrence frequency (optional)",
                 },
             },
             "required": ["user_id", "task_id"],

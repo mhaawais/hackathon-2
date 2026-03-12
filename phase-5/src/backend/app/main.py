@@ -6,7 +6,7 @@ from sqlmodel import SQLModel
 
 from app.config import settings
 from app.db import engine
-from app.routes import chat, health, todos
+from app.routes import chat, health, internal, todos
 
 # Import all models so SQLModel.metadata knows about every table
 import app.models.todo  # noqa: F401
@@ -34,3 +34,4 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(todos.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(internal.router, prefix="/api")

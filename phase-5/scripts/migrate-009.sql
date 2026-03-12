@@ -20,6 +20,12 @@ BEGIN
   END IF;
 END$$;
 
+-- Spec-010 recurring task fields
+ALTER TABLE todo ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE todo ADD COLUMN IF NOT EXISTS recurrence_frequency VARCHAR(10)
+  CHECK (recurrence_frequency IN ('daily', 'weekly', 'monthly'));
+ALTER TABLE todo ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- Performance indexes
 CREATE INDEX IF NOT EXISTS idx_todos_priority ON todo (priority, user_id);
 CREATE INDEX IF NOT EXISTS idx_todos_due_date ON todo (due_date) WHERE due_date IS NOT NULL;

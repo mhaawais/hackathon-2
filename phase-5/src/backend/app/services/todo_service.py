@@ -18,6 +18,8 @@ def create_todo(session: Session, user_id: str, data: TodoCreate) -> Todo:
         priority=data.priority,
         tags=data.tags if data.tags is not None else [],
         due_date=data.due_date,
+        is_recurring=data.is_recurring,
+        recurrence_frequency=data.recurrence_frequency,
         user_id=user_id,
     )
     session.add(todo)
@@ -122,6 +124,10 @@ def update_todo(
         todo.due_date = data.due_date
     if data.completed is not None:
         todo.status = "completed" if data.completed else "pending"
+    if data.is_recurring is not None:
+        todo.is_recurring = data.is_recurring
+    if data.recurrence_frequency is not None:
+        todo.recurrence_frequency = data.recurrence_frequency
 
     todo.updated_at = datetime.now(timezone.utc)
 

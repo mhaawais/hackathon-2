@@ -34,6 +34,24 @@ frontend:
       cpu: 500m
       memory: 512Mi
 
+# ── Notification Service ─────────────────────────────────────────────────────
+notificationService:
+  image:
+    repository: todo-notification
+    tag: latest
+    pullPolicy: Never
+
+# ── Recurring Task Service ────────────────────────────────────────────────────
+recurringTaskService:
+  image:
+    repository: todo-recurring
+    tag: latest
+    pullPolicy: Never
+
+# ── Redpanda (local Minikube only — disable for cloud) ───────────────────────
+redpanda:
+  enabled: true
+
 # ── Ingress ───────────────────────────────────────────────────────────────────
 ingress:
   enabled: true
