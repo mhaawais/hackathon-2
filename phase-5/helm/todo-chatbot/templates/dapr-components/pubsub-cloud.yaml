@@ -1,4 +1,4 @@
-{{- if not .Values.redpanda.enabled }}
+{{- if and (not .Values.redpanda.enabled) .Values.config.kafkaBroker }}
 # Cloud Dapr pub/sub: points to Redpanda Cloud with SASL/TLS
 apiVersion: dapr.io/v1alpha1
 kind: Component

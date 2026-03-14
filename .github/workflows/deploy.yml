@@ -118,8 +118,8 @@ jobs:
             --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --from-literal=BETTER_AUTH_SECRET="${{ secrets.BETTER_AUTH_SECRET }}" \
             --from-literal=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            --from-literal=KAFKA_SASL_USERNAME="${{ secrets.KAFKA_SASL_USERNAME }}" \
-            --from-literal=KAFKA_SASL_PASSWORD="${{ secrets.KAFKA_SASL_PASSWORD }}" \
+            --from-literal=KAFKA_SASL_USERNAME="" \
+            --from-literal=KAFKA_SASL_PASSWORD="" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Helm upgrade (cloud deployment)
@@ -140,7 +140,7 @@ jobs:
             --set recurringTaskService.image.tag=${{ github.sha }} \
             --set recurringTaskService.image.pullPolicy=Always \
             --set redpanda.enabled=false \
-            --set config.kafkaBroker="${{ secrets.KAFKA_BROKER }}" \
+            --set config.kafkaBroker="" \
             --set ingress.host="${{ secrets.APP_HOST }}" \
             --timeout 5m \
             --wait
