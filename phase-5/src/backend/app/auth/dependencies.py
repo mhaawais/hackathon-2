@@ -20,4 +20,4 @@ def get_current_user(
             detail="Authentication required",
         )
 
-    return verify_token(credentials.credentials, settings.BETTER_AUTH_SECRET, settings.FRONTEND_URL)
+    return verify_token(credentials.credentials, settings.BETTER_AUTH_SECRET, settings.FRONTEND_URL, settings.BETTER_AUTH_URL)

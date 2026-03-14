@@ -14,6 +14,11 @@ spec:
     metadata:
       labels:
         {{- include "todo-chatbot.backend.selectorLabels" . | nindent 8 }}
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "todo-backend"
+        dapr.io/app-port: "{{ .Values.backend.port }}"
+        dapr.io/log-level: "info"
     spec:
       containers:
         - name: backend
@@ -34,6 +39,13 @@ spec:
                 configMapKeyRef:
                   name: {{ include "todo-chatbot.fullname" . }}-config
                   key: FRONTEND_URL
+            - name: DAPR_HTTP_PORT
+              value: "3500"
+            - name: BETTER_AUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "todo-chatbot.fullname" . }}-config
+                  key: BETTER_AUTH_URL
             # From Secret
             - name: DATABASE_URL
               valueFrom:

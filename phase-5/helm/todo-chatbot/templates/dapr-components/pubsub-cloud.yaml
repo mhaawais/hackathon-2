@@ -1,0 +1,32 @@
+{{- if not .Values.redpanda.enabled }}
+# Cloud Dapr pub/sub: points to Redpanda Cloud with SASL/TLS
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    - name: brokers
+      value: {{ .Values.config.kafkaBroker | quote }}
+    - name: consumerGroup
+      value: "todo-chatbot"
+    - name: authRequired
+      value: "true"
+    - name: saslUsername
+      secretKeyRef:
+        name: {{ include "todo-chatbot.fullname" . }}-secrets
+        key: KAFKA_SASL_USERNAME
+    - name: saslPassword
+      secretKeyRef:
+        name: {{ include "todo-chatbot.fullname" . }}-secrets
+        key: KAFKA_SASL_PASSWORD
+    - name: saslMechanism
+      value: "SCRAM-SHA-256"
+    - name: TLSEnabled
+      value: "true"
+    - name: initialOffset
+      value: "newest"
+{{- end }}

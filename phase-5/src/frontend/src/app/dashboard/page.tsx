@@ -111,6 +111,8 @@ function DashboardInner() {
     priority: "high" | "medium" | "low";
     tags: string[];
     due_date: string | null;
+    is_recurring: boolean;
+    recurrence_frequency: "daily" | "weekly" | "monthly" | null;
   }) {
     try {
       await api.post<Todo>("/todos", data);
@@ -148,6 +150,8 @@ function DashboardInner() {
       priority: "high" | "medium" | "low";
       tags: string[];
       due_date: string | null;
+      is_recurring: boolean;
+      recurrence_frequency: "daily" | "weekly" | "monthly" | null;
     }
   ) {
     try {

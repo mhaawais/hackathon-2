@@ -15,6 +15,7 @@ class Settings:
         self.DATABASE_URL = os.environ.get("DATABASE_URL", "")
         self.BETTER_AUTH_SECRET = os.environ.get("BETTER_AUTH_SECRET", "")
         self.FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        self.BETTER_AUTH_URL = os.environ.get("BETTER_AUTH_URL", self.FRONTEND_URL)
         self.GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
         self.GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 

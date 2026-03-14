@@ -11,6 +11,8 @@ interface Todo {
   tags: string[];
   due_date: string | null;
   status: "pending" | "completed";
+  is_recurring: boolean;
+  recurrence_frequency: "daily" | "weekly" | "monthly" | null;
   created_at: string;
 }
 
@@ -29,7 +31,9 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const datePart = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const timePart = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${datePart} at ${timePart}`;
 }
 
 function formatDueDate(isoString: string): string {
@@ -154,6 +158,16 @@ export function TodoCard({ todo, onComplete, onEdit, onDelete }: TodoCardProps) 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {formatDueDate(todo.due_date)}
+              </span>
+            )}
+
+            {/* Recurring badge */}
+            {todo.is_recurring && todo.recurrence_frequency && (
+              <span className="text-xs flex items-center gap-1 text-violet-600 dark:text-violet-400 font-medium">
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {todo.recurrence_frequency.charAt(0).toUpperCase() + todo.recurrence_frequency.slice(1)}
               </span>
             )}
 

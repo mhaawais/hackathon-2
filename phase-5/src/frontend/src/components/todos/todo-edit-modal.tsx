@@ -15,6 +15,8 @@ interface TodoEditModalProps {
     priority: "high" | "medium" | "low";
     tags: string[];
     due_date: string | null;
+    is_recurring: boolean;
+    recurrence_frequency: "daily" | "weekly" | "monthly" | null;
   }) => Promise<void>;
   onClose: () => void;
 }
@@ -29,6 +31,8 @@ export function TodoEditModal({ todo, onSave, onClose }: TodoEditModalProps) {
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
   const [loading, setLoading] = useState(false);
   const [titleError, setTitleError] = useState("");
 
@@ -43,6 +47,8 @@ export function TodoEditModal({ todo, onSave, onClose }: TodoEditModalProps) {
           ? new Date(todo.due_date).toISOString().slice(0, 16)
           : ""
       );
+      setIsRecurring(todo.is_recurring ?? false);
+      setRecurrenceFrequency(todo.recurrence_frequency ?? "weekly");
       setTitleError("");
     }
   }, [todo]);
@@ -75,6 +81,8 @@ export function TodoEditModal({ todo, onSave, onClose }: TodoEditModalProps) {
         priority,
         tags,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        is_recurring: isRecurring,
+        recurrence_frequency: isRecurring ? recurrenceFrequency : null,
       });
     } finally {
       setLoading(false);
@@ -126,6 +134,43 @@ export function TodoEditModal({ todo, onSave, onClose }: TodoEditModalProps) {
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
             />
           </div>
+        </div>
+
+        {/* Recurring toggle */}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isRecurring}
+              onClick={() => setIsRecurring((v) => !v)}
+              className={[
+                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1",
+                isRecurring ? "bg-violet-500" : "bg-slate-200 dark:bg-slate-700",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform",
+                  isRecurring ? "translate-x-4" : "translate-x-0.5",
+                ].join(" ")}
+              />
+            </button>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Recurring</span>
+          </label>
+
+          {isRecurring && (
+            <select
+              value={recurrenceFrequency}
+              onChange={(e) => setRecurrenceFrequency(e.target.value as "daily" | "weekly" | "monthly")}
+              aria-label="Recurrence frequency"
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          )}
         </div>
 
         {/* Tags */}

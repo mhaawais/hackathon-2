@@ -9,8 +9,10 @@ import { authClient } from "@/lib/auth-client";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { ChatInput } from "@/components/chat/chat-input";
+import { TodoForm } from "@/components/todos/todo-form";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import type { ChatMessage, ChatApiResponse } from "@/lib/chat-api";
+import type { Todo } from "@/components/todos/todo-card";
 
 const LS_CONV_KEY = "chat_conversation_id";
 const LS_MSGS_KEY = "chat_messages";
@@ -27,6 +29,7 @@ function ChatInner() {
   const [userName, setUserName] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [hasTaskChanges, setHasTaskChanges] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
 
   // Use a ref to track conversationId inside callbacks without stale closure
   const conversationIdRef = useRef<number | null>(null);
@@ -126,6 +129,22 @@ function ChatInner() {
     }
   }, [showToast]);
 
+  // ── Add task from chat panel ───────────────────────────────────────────
+  async function handleAddTask(data: {
+    title: string;
+    description: string | null;
+    priority: "high" | "medium" | "low";
+    tags: string[];
+    due_date: string | null;
+    is_recurring: boolean;
+    recurrence_frequency: "daily" | "weekly" | "monthly" | null;
+  }) {
+    await api.post<Todo>("/todos", data);
+    setShowAddTask(false);
+    setHasTaskChanges(true);
+    showToast("Task added!");
+  }
+
   // ── New chat ───────────────────────────────────────────────────────────
   function handleNewChat() {
     localStorage.removeItem(LS_CONV_KEY);
@@ -176,13 +195,48 @@ function ChatInner() {
                 <p className="text-xs text-slate-400 dark:text-slate-500">Powered by Gemini</p>
               </div>
             </div>
-            <button
-              onClick={handleNewChat}
-              className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              New Chat
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAddTask((v) => !v)}
+                className={[
+                  "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
+                  showAddTask
+                    ? "border-indigo-500 bg-indigo-600 text-white"
+                    : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
+                ].join(" ")}
+              >
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Task
+              </button>
+              <button
+                onClick={handleNewChat}
+                className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                New Chat
+              </button>
+            </div>
           </div>
+
+          {/* Quick add task panel */}
+          {showAddTask && (
+            <div className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Quick Add Task</p>
+                <button
+                  onClick={() => setShowAddTask(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Close add task panel"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <TodoForm onAdd={handleAddTask} />
+            </div>
+          )}
 
           {/* Task-changes banner */}
           {hasTaskChanges && (

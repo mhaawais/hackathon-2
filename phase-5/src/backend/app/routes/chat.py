@@ -1,17 +1,20 @@
-"""Chat endpoint — Spec-6: AI Agent & Chat Endpoint.
+"""Chat endpoint — Spec-6 + Spec-011 (Dapr Jobs callback).
 
-POST /api/chat: Accepts a user message and optional conversation_id.
-Requires a valid JWT (Authorization: Bearer <token>).
-Returns the AI agent's response with tool call details.
+POST /api/chat         → AI agent chat turn
+POST /api/jobs/trigger → Dapr Jobs API callback (fires when reminder is due)
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlmodel import Session
 
 from app.auth.dependencies import get_current_user
 from app.db import get_session
 from app.models.schemas import ChatRequest, ChatResponse
 from app.services import agent_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -22,13 +25,7 @@ def chat(
     user_id: str = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ChatResponse:
-    """Run one turn of the AI chat agent.
-
-    - Creates a new conversation if conversation_id is not provided or not found.
-    - Loads full conversation history for context if conversation_id is provided.
-    - Stores user message and assistant response to the database.
-    - Returns conversation_id (new or existing), response text, and tool_calls made.
-    """
+    """Run one turn of the AI chat agent."""
     try:
         return agent_service.run_chat(
             session,
@@ -38,3 +35,27 @@ def chat(
         )
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@router.post("/jobs/trigger", include_in_schema=False)
+async def jobs_trigger(request: Request) -> Response:
+    """Dapr Jobs API callback — fires when a scheduled reminder is due.
+
+    Dapr POST this endpoint at the time specified in the job's dueTime.
+    No auth required — Dapr calls this internally within the cluster.
+    """
+    try:
+        body = await request.json()
+        data = body.get("data", body)
+        task_id = data.get("task_id", "unknown")
+        user_id = data.get("user_id", "unknown")
+        logger.info(
+            "[JOBS TRIGGER] Reminder fired: task_id=%s user_id=%s",
+            task_id,
+            user_id,
+        )
+        # Extension point: push WebSocket notification, send email, etc.
+        # For hackathon scope: log only — notification_service handles Kafka reminders
+    except Exception as exc:
+        logger.error("Jobs trigger error: %s", exc)
+    return Response(status_code=200)

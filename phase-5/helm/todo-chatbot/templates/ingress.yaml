@@ -14,6 +14,14 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
+          # Better Auth routes must go to frontend BEFORE the generic /api rule
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "todo-chatbot.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
           # Route /api/* to backend (FastAPI is mounted at /api so no rewrite needed)
           - path: /api
             pathType: Prefix

@@ -15,13 +15,16 @@ def _get_jwks_client(frontend_url: str) -> PyJWKClient:
     return _jwks_client
 
 
-def verify_token(token: str, secret: str, frontend_url: str = "http://localhost:3000") -> str:
+def verify_token(token: str, secret: str, frontend_url: str = "http://localhost:3000", token_issuer: str | None = None) -> str:
     """Decode and verify a JWT token using JWKS public keys from Better Auth.
 
+    frontend_url: internal K8s URL used to fetch JWKS (pod-to-pod).
+    token_issuer: external URL used as JWT audience/issuer (matches BETTER_AUTH_URL).
     Falls back to HS256 shared secret verification for test tokens.
     Returns the user_id (sub claim) from the token payload.
     Raises HTTPException(401) on any verification failure.
     """
+    issuer = token_issuer or frontend_url
     # First try JWKS verification (production path — tokens from Better Auth JWT plugin)
     try:
         client = _get_jwks_client(frontend_url)
@@ -30,8 +33,8 @@ def verify_token(token: str, secret: str, frontend_url: str = "http://localhost:
             token,
             signing_key.key,
             algorithms=["EdDSA", "RS256", "ES256"],
-            audience=frontend_url,
-            issuer=frontend_url,
+            audience=issuer,
+            issuer=issuer,
         )
         user_id = payload.get("sub")
         if not user_id:

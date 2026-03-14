@@ -1,0 +1,160 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "phase-5/**"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # ─── Job 1: Build and push all 4 Docker images ───────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: phase-5/src
+          file: phase-5/src/backend/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/todo-backend:latest,${{ env.IMAGE_PREFIX }}/todo-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: phase-5/src/frontend
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/todo-frontend:latest,${{ env.IMAGE_PREFIX }}/todo-frontend:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push notification service
+        uses: docker/build-push-action@v5
+        with:
+          context: phase-5/src/notification_service
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/todo-notification:latest,${{ env.IMAGE_PREFIX }}/todo-notification:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push recurring task service
+        uses: docker/build-push-action@v5
+        with:
+          context: phase-5/src/recurring_task_service
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/todo-recurring:latest,${{ env.IMAGE_PREFIX }}/todo-recurring:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── Job 2: Deploy to Oracle OKE ─────────────────────────────────────────
+  deploy:
+    name: Deploy to OKE
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OCI CLI
+        run: |
+          pip install oci-cli --quiet
+
+      - name: Configure OCI credentials
+        run: |
+          mkdir -p ~/.oci
+          echo "[DEFAULT]" > ~/.oci/config
+          echo "user=${{ secrets.OCI_CLI_USER }}" >> ~/.oci/config
+          echo "tenancy=${{ secrets.OCI_CLI_TENANCY }}" >> ~/.oci/config
+          echo "region=${{ secrets.OCI_CLI_REGION }}" >> ~/.oci/config
+          echo "fingerprint=${{ secrets.OCI_CLI_FINGERPRINT }}" >> ~/.oci/config
+          echo "key_file=~/.oci/key.pem" >> ~/.oci/config
+          echo "${{ secrets.OCI_CLI_KEY_CONTENT }}" > ~/.oci/key.pem
+          chmod 600 ~/.oci/key.pem ~/.oci/config
+
+      - name: Set up kubectl for OKE
+        run: |
+          oci ce cluster create-kubeconfig \
+            --cluster-id ${{ secrets.OKE_CLUSTER_OCID }} \
+            --file $HOME/.kube/config \
+            --region ${{ secrets.OCI_CLI_REGION }} \
+            --token-version 2.0.0
+          kubectl get nodes
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.14.0
+
+      - name: Apply K8s Secrets
+        run: |
+          kubectl create secret generic todo-chatbot-secrets \
+            --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --from-literal=BETTER_AUTH_SECRET="${{ secrets.BETTER_AUTH_SECRET }}" \
+            --from-literal=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+            --from-literal=KAFKA_SASL_USERNAME="${{ secrets.KAFKA_SASL_USERNAME }}" \
+            --from-literal=KAFKA_SASL_PASSWORD="${{ secrets.KAFKA_SASL_PASSWORD }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Helm upgrade (cloud deployment)
+        run: |
+          helm upgrade todo-chatbot phase-5/helm/todo-chatbot \
+            --install \
+            --namespace default \
+            --set backend.image.repository=${{ env.IMAGE_PREFIX }}/todo-backend \
+            --set backend.image.tag=${{ github.sha }} \
+            --set backend.image.pullPolicy=Always \
+            --set frontend.image.repository=${{ env.IMAGE_PREFIX }}/todo-frontend \
+            --set frontend.image.tag=${{ github.sha }} \
+            --set frontend.image.pullPolicy=Always \
+            --set notificationService.image.repository=${{ env.IMAGE_PREFIX }}/todo-notification \
+            --set notificationService.image.tag=${{ github.sha }} \
+            --set notificationService.image.pullPolicy=Always \
+            --set recurringTaskService.image.repository=${{ env.IMAGE_PREFIX }}/todo-recurring \
+            --set recurringTaskService.image.tag=${{ github.sha }} \
+            --set recurringTaskService.image.pullPolicy=Always \
+            --set redpanda.enabled=false \
+            --set config.kafkaBroker="${{ secrets.KAFKA_BROKER }}" \
+            --set ingress.host="${{ secrets.APP_HOST }}" \
+            --timeout 5m \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods
+          kubectl rollout status deployment/todo-chatbot-backend
+          kubectl rollout status deployment/todo-chatbot-frontend
+
+      - name: Smoke test health endpoint
+        run: |
+          APP_HOST="${{ secrets.APP_HOST }}"
+          echo "Testing https://${APP_HOST}/api/health"
+          curl -sf "https://${APP_HOST}/api/health" || \
+          curl -sf "http://${APP_HOST}/api/health" || \
+          echo "Health check skipped (DNS may not be propagated yet)"

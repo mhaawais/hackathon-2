@@ -13,10 +13,10 @@ backend:
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 150Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 384Mi
 
 # ── Frontend ─────────────────────────────────────────────────────────────────
 frontend:
@@ -29,10 +29,10 @@ frontend:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 100Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 384Mi
 
 # ── Notification Service ─────────────────────────────────────────────────────
 notificationService:
@@ -65,6 +65,10 @@ config:
   frontendUrl: http://todo-chatbot-frontend:3000
   # Frontend uses external hostname for Better Auth base URL
   betterAuthUrl: http://todo.local
+  # Dapr env
+  daprHttpPort: "3500"
+  # Cloud Kafka broker (used when redpanda.enabled=false)
+  kafkaBroker: ""
 
 # ── Secrets (MUST be overridden — never commit real values here) ─────────────
 secrets:
@@ -73,3 +77,6 @@ secrets:
   databaseUrl: ""
   betterAuthSecret: ""
   geminiApiKey: ""
+  # Cloud Kafka SASL — only needed when redpanda.enabled=false
+  kafkaSaslUsername: ""
+  kafkaSaslPassword: ""

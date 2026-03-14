@@ -1,4 +1,4 @@
-"""Gemini AI agent orchestration — Spec-6: AI Agent & Chat Endpoint.
+"""Gemini AI agent orchestration — Spec-6 + Spec-009 + Spec-010.
 
 Provides run_chat() which is the single public entry point for the chat endpoint.
 Manages the full stateless request cycle:
@@ -54,12 +54,26 @@ FALLBACK_MESSAGE = "I couldn't complete the operation. Please try again."
 
 SYSTEM_PROMPT = """You are a helpful todo assistant. You help users manage their tasks through conversation.
 
-Rules:
-- Always use the provided tools to perform task operations (add, list, complete, delete, update).
-- Never make up task data — only report what the tools return.
-- After using a tool, confirm the action clearly and concisely to the user.
-- If a tool returns an error, explain it to the user in plain language.
-- Keep responses brief and action-focused."""
+You have full access to task management tools. Here is how to use them intelligently:
+
+**Creating tasks:**
+- Infer priority from language: "urgent"/"critical"/"ASAP" → high; "low priority"/"whenever" → low; default → medium
+- Infer tags from context: "work meeting" → tags=["work", "meeting"]; "grocery run" → tags=["personal"]
+- Parse due dates: "tomorrow", "next Monday", "in 3 days", specific dates → convert to ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)
+- Set recurring for repeating tasks: "daily standup", "weekly review" → is_recurring=True with correct frequency
+
+**Listing tasks:**
+- Use search for keyword queries: "find tasks about meeting" → search="meeting"
+- Use status filter for: "show incomplete" → status="pending"; "what's done" → status="completed"
+- Use priority filter for: "show urgent tasks" → priority="high"
+- Use sort: "what's due soon" → sort_by="due_date", sort_dir="asc"
+
+**Rules:**
+- Always use tools to perform operations — never make up task data
+- After using a tool, confirm the action clearly and concisely
+- If a tool returns an error, explain it in plain language
+- When listing tasks, format the response clearly with titles and status
+- For recurring tasks, mention the frequency in your confirmation"""
 
 # ---------------------------------------------------------------------------
 # Gemini tool definitions (user_id excluded — server-injected per security requirement)
@@ -68,25 +82,72 @@ Rules:
 _FUNCTION_DECLARATIONS = [
     types.FunctionDeclaration(
         name="add_task",
-        description="Create a new task for the user.",
+        description=(
+            "Create a new task. Infer priority/tags/due_date/recurring from context. "
+            "Use is_recurring+recurrence_frequency for repeating tasks like 'daily standup'."
+        ),
         parameters=types.Schema(
             type="OBJECT",
             properties={
                 "title": types.Schema(type="STRING", description="Task title (required, non-empty)"),
                 "description": types.Schema(type="STRING", description="Optional task details"),
+                "priority": types.Schema(
+                    type="STRING",
+                    description="Task priority: 'high', 'medium' (default), or 'low'",
+                ),
+                "tags": types.Schema(
+                    type="ARRAY",
+                    items=types.Schema(type="STRING"),
+                    description="Category tags e.g. ['work', 'meeting']",
+                ),
+                "due_date": types.Schema(
+                    type="STRING",
+                    description="ISO 8601 due date e.g. '2026-03-20T09:00:00Z'. Set when user mentions a time.",
+                ),
+                "is_recurring": types.Schema(
+                    type="BOOLEAN",
+                    description="True if task repeats on a schedule",
+                ),
+                "recurrence_frequency": types.Schema(
+                    type="STRING",
+                    description="Recurrence: 'daily', 'weekly', or 'monthly'. Required when is_recurring=true.",
+                ),
             },
             required=["title"],
         ),
     ),
     types.FunctionDeclaration(
         name="list_tasks",
-        description="List the user's tasks, optionally filtered by status. Call when user asks to see or list tasks.",
+        description=(
+            "List tasks with optional filters. Use search for keywords, "
+            "priority/status for filtering, sort_by for ordering."
+        ),
         parameters=types.Schema(
             type="OBJECT",
             properties={
                 "status": types.Schema(
                     type="STRING",
-                    description="Filter by status: 'all', 'pending', or 'completed'. Default: 'all'",
+                    description="Filter: 'all' (default), 'pending'/'open' (incomplete), or 'completed'",
+                ),
+                "priority": types.Schema(
+                    type="STRING",
+                    description="Filter by priority: 'high', 'medium', or 'low'",
+                ),
+                "search": types.Schema(
+                    type="STRING",
+                    description="Keyword search on title and description",
+                ),
+                "tag": types.Schema(
+                    type="STRING",
+                    description="Filter tasks that have this specific tag",
+                ),
+                "sort_by": types.Schema(
+                    type="STRING",
+                    description="Sort field: 'created_at' (default), 'due_date', 'priority', or 'title'",
+                ),
+                "sort_dir": types.Schema(
+                    type="STRING",
+                    description="Sort direction: 'desc' (default) or 'asc'",
                 ),
             },
             required=[],
@@ -116,13 +177,29 @@ _FUNCTION_DECLARATIONS = [
     ),
     types.FunctionDeclaration(
         name="update_task",
-        description="Update a task's title or description.",
+        description=(
+            "Update task fields. Only pass fields that need to change. "
+            "Can update title, description, priority, tags, due_date, or recurring settings."
+        ),
         parameters=types.Schema(
             type="OBJECT",
             properties={
                 "task_id": types.Schema(type="STRING", description="UUID of the task to update"),
                 "title": types.Schema(type="STRING", description="New title (optional)"),
                 "description": types.Schema(type="STRING", description="New description (optional)"),
+                "priority": types.Schema(type="STRING", description="New priority: 'high', 'medium', or 'low'"),
+                "tags": types.Schema(
+                    type="ARRAY",
+                    items=types.Schema(type="STRING"),
+                    description="Full replacement tag list (optional)",
+                ),
+                "due_date": types.Schema(type="STRING", description="New ISO 8601 due date (optional)"),
+                "completed": types.Schema(type="BOOLEAN", description="Set completion directly (optional)"),
+                "is_recurring": types.Schema(type="BOOLEAN", description="Toggle recurring on/off"),
+                "recurrence_frequency": types.Schema(
+                    type="STRING",
+                    description="New recurrence: 'daily', 'weekly', or 'monthly'",
+                ),
             },
             required=["task_id"],
         ),

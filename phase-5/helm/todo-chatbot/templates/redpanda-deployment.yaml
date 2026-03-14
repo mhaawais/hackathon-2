@@ -1,0 +1,71 @@
+{{- if .Values.redpanda.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda
+  labels:
+    {{- include "todo-chatbot.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redpanda
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          image: redpandadata/redpanda:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - rpk
+            - redpanda
+            - start
+            - "--mode"
+            - dev-container
+            - "--overprovisioned"
+            - "--smp=1"
+            - "--memory=256M"
+            - "--reserve-memory=0M"
+            - "--node-id=0"
+            - "--check=false"
+          ports:
+            - name: kafka
+              containerPort: 9092
+            - name: admin
+              containerPort: 9644
+          readinessProbe:
+            exec:
+              command: ["rpk", "cluster", "health"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 320Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+  labels:
+    {{- include "todo-chatbot.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: redpanda
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092
+    - name: admin
+      port: 9644
+      targetPort: 9644
+{{- end }}

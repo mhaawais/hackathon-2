@@ -1,0 +1,23 @@
+# Dapr state store backed by Neon PostgreSQL
+# Dapr creates a `dapr_state` table automatically on first use
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: default
+spec:
+  type: state.postgresql
+  version: v1
+  metadata:
+    - name: connectionString
+      secretKeyRef:
+        name: {{ include "todo-chatbot.fullname" . }}-secrets
+        key: DATABASE_URL
+    - name: tableName
+      value: "dapr_state"
+    - name: cleanupIntervalInSeconds
+      value: "300"
+    - name: timeoutInSeconds
+      value: "60"
+    - name: connectionMaxIdleTime
+      value: "0"

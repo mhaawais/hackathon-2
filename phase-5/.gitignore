@@ -26,6 +26,7 @@ build/
 
 # ── Helm secrets ────────────────────────────────────────────
 values-secrets.yaml
+values-cloud.yaml
 
 # ── OS ──────────────────────────────────────────────────────
 .DS_Store

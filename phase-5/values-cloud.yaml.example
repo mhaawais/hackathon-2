@@ -1,0 +1,48 @@
+# values-cloud.yaml — Cloud deployment overrides for Oracle OKE + Redpanda Cloud
+# Copy to values-cloud.yaml, fill in real values, add to .gitignore
+#
+# Usage:
+#   helm upgrade todo-chatbot ./helm/todo-chatbot \
+#     --install \
+#     --set redpanda.enabled=false \
+#     --values values-cloud.yaml
+#
+# WARNING: values-cloud.yaml is gitignored. NEVER commit real secrets.
+
+# Disable in-cluster Redpanda (use Redpanda Cloud instead)
+redpanda:
+  enabled: false
+
+# All services pull from GHCR (built by CI/CD)
+backend:
+  image:
+    pullPolicy: Always
+
+frontend:
+  image:
+    pullPolicy: Always
+
+notificationService:
+  image:
+    pullPolicy: Always
+
+recurringTaskService:
+  image:
+    pullPolicy: Always
+
+# Cloud Redpanda broker + SASL credentials
+config:
+  kafkaBroker: "pkc-xxx.cloud.redpanda.com:9092"
+
+# Public hostname (OKE LoadBalancer IP or custom domain)
+ingress:
+  host: "todo.yourdomain.com"
+
+# K8s Secrets (set via CI/CD — not here)
+# Shown for reference only
+secrets:
+  databaseUrl: "postgresql://user:password@ep-xxx.neon.tech/neondb?sslmode=require"
+  betterAuthSecret: "your-better-auth-secret"
+  geminiApiKey: "your-gemini-api-key"
+  kafkaSaslUsername: "your-redpanda-username"
+  kafkaSaslPassword: "your-redpanda-password"

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import cast, String, or_
 from sqlmodel import Session, select, col
 
 from app.models.todo import Todo
@@ -52,17 +53,21 @@ def list_todos(
     if priority:
         statement = statement.where(Todo.priority == priority)
 
-    # Full-text search on title + description (ILIKE)
+    # Full-text search on title, description, and tags
     if search:
         pattern = f"%{search}%"
         statement = statement.where(
-            col(Todo.title).ilike(pattern) | col(Todo.description).ilike(pattern)
+            or_(
+                col(Todo.title).ilike(pattern),
+                col(Todo.description).isnot(None) & col(Todo.description).ilike(pattern),
+                cast(Todo.tags, String).ilike(pattern),
+            )
         )
 
-    # Tag filter — PostgreSQL JSON contains operator
+    # Tag filter — exact tag match inside JSON array text
     if tag:
         statement = statement.where(
-            col(Todo.tags).cast(str).contains(f'"{tag}"')
+            cast(Todo.tags, String).contains(f'"{tag}"')
         )
 
     # Due date filter
